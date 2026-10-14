@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClassBeacon — Video Lesson</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .toast-warning {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: #ef4444;
+      color: #ffffff;
+      padding: 0.875rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      z-index: 2000;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Warning for Seek Blocking -->
+  <div id="seekToast" class="toast-warning">
+    ⚠️ Forward seeking is disabled! Please watch the video sequentially.
+  </div>
+
+  <header class="app-header">
+    <div class="app-title">
+      ClassBeacon Attentive Lesson Player 🎓
+    </div>
+    <div>
+      <button class="btn btn-outline" onclick="window.location.href='/student'">← Back to Student Portal</button>
+    </div>
+  </header>
+
+  <main class="main-container" style="max-width: 950px;">
+    <div class="card" style="padding: 2rem;">
+      <h1 id="lessonTitle" style="margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #0f172a;">Loading lesson...</h1>
+      <p id="lessonMeta" style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;"></p>
+
+      <!-- Universal Video Player Container -->
+      <div id="playerContainer" style="background: #000; border-radius: 12px; overflow: hidden; position: relative; min-height: 360px; display: flex; align-items: center; justify-content: center; color: #fff;">
+        <div>Loading video player...</div>
+      </div>
+
+      <!-- Monitoring Agent Status Dashboard -->
+      <div style="margin-top: 1.5rem; padding: 1.25rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <strong style="display: block; color: #0f172a; font-size: 0.9rem;">🤖 Attentive Monitoring Agent Active:</strong>
+          <span style="font-size: 0.85rem; color: #64748b;">Screen focus, active tab playback, and chunk coverage are reported to your instructor.</span>
+        </div>
+        <div id="playbackStatus" style="font-weight: 800; font-size: 0.95rem; color: #2563eb; background: #dbeafe; padding: 0.4rem 0.8rem; border-radius: 6px;">
+          Ready
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script>
+    const assignmentId = {{ assignment_id }};
+    let currentAssignment = null;
+    let maxPlayedTime = 0;
+    let heartbeatTimer = null;
+    let isTabActive = true;
+
+    function showSeekToast() {
+      const toast = document.getElementById('seekToast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    function formatTime(sec) {
+      if (!sec || isNaN(sec)) return '0s';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}m ${s}s`;
+    }
+
+    function updateDurationMeta(durSec) {
+      const threshold = currentAssignment ? (currentAssignment.completion_threshold || 0.8) : 0.8;
+      document.getElementById('lessonMeta').innerText = `Video Length: ${formatTime(durSec)} | Required Completion Threshold: ${Math.round(threshold * 100)}%`;
+    }
+
+    async function sendHeartbeat(videoEl) {
+      if (!videoEl || !currentAssignment) return;
+      const currentTime = videoEl.currentTime;
+      const durationSec = videoEl.duration || currentAssignment.duration_sec || 300;
+      const chunkIndex = Math.floor(currentTime / 5);
+
+      try {
+        await apiFetch('/progress/beat', {
+          method: 'POST',
+          body: JSON.stringify({
+            assignmentId,
+            sectionId: currentAssignment.section_id,
+            chunkIndex,
+            durationSec: Math.round(durationSec),
+            tabActive: isTabActive
+          })
+        });
+      } catch (err) {
+        console.warn('Heartbeat update failed:', err);
+      }
+    }
+
+    function setupMonitoringAgent(videoEl) {
+      // 1. Forward Seeking Guard
+      videoEl.addEventListener('timeupdate', () => {
+        if (!videoEl.seeking) {
+          if (videoEl.currentTime > maxPlayedTime) {
+            maxPlayedTime = videoEl.currentTime;
+          }
+        }
+      });
+
+      videoEl.addEventListener('seeking', () => {
+        const delta = videoEl.currentTime - maxPlayedTime;
+        if (delta > 2) {
+          // Block forward seek!
+          videoEl.currentTime = maxPlayedTime;
+          showSeekToast();
+        }
+      });
+
+      // 2. Tab Focus & Page Visibility Monitor Agent
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          isTabActive = false;
+          if (!videoEl.paused) {
+            videoEl.pause();
+          }
+          document.getElementById('playbackStatus').innerText = '🟡 Tab Hidden — Video Paused';
+          document.getElementById('playbackStatus').style.color = '#d97706';
+          document.getElementById('playbackStatus').style.background = '#fef3c7';
+        } else {
+          isTabActive = true;
+          document.getElementById('playbackStatus').innerText = '⏸ Paused (Focus Restored)';
+          document.getElementById('playbackStatus').style.color = '#2563eb';
+          document.getElementById('playbackStatus').style.background = '#dbeafe';
+        }
+      });
+
+      window.addEventListener('blur', () => {
+        isTabActive = false;
+      });
+
+      window.addEventListener('focus', () => {
+        isTabActive = true;
+      });
+
+      // 3. Playback State Listeners
+      videoEl.addEventListener('play', () => {
+        document.getElementById('playbackStatus').innerText = '▶ Playing & Monitoring Active';
+        document.getElementById('playbackStatus').style.color = '#16a34a';
+        document.getElementById('playbackStatus').style.background = '#dcfce7';
+
+        if (!heartbeatTimer) {
+          heartbeatTimer = setInterval(() => {
+            if (!videoEl.paused && !videoEl.ended) {
+              sendHeartbeat(videoEl);
+            }
+          }, 5000);
+        }
+      });
+
+      videoEl.addEventListener('pause', () => {
+        if (!document.hidden) {
+          document.getElementById('playbackStatus').innerText = '⏸ Paused';
+          document.getElementById('playbackStatus').style.color = '#d97706';
+          document.getElementById('playbackStatus').style.background = '#fef3c7';
+        }
+      });
+
+      videoEl.addEventListener('ended', () => {
+        document.getElementById('playbackStatus').innerText = '✅ Completed Watch Goal';
+        document.getElementById('playbackStatus').style.color = '#16a34a';
+        document.getElementById('playbackStatus').style.background = '#dcfce7';
+        sendHeartbeat(videoEl);
+      });
+    }
+
+    function renderVideoPlayer(sourceUrl) {
+      const container = document.getElementById('playerContainer');
+
+      if (!sourceUrl) {
+        container.innerHTML = `<div style="padding: 3rem; color: #ef4444;">No video URL configured.</div>`;
+        return;
+      }
+
+      // YouTube player
+      if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
+        let videoId = '';
+        if (sourceUrl.includes('youtu.be/')) {
+          videoId = sourceUrl.split('youtu.be/')[1].split('?')[0];
+        } else if (sourceUrl.includes('watch?v=')) {
+          videoId = sourceUrl.split('watch?v=')[1].split('&')[0];
+        } else if (sourceUrl.includes('embed/')) {
+          videoId = sourceUrl.split('embed/')[1].split('?')[0];
+        }
+
+        container.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" style="width:100%; height:480px; border:none; border-radius:12px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+      } 
+      // Vimeo player
+      else if (sourceUrl.includes('vimeo.com')) {
+        const videoId = sourceUrl.split('vimeo.com/')[1].split('?')[0];
+        container.innerHTML = `<iframe src="https://player.vimeo.com/video/${videoId}?autoplay=1" style="width:100%; height:480px; border:none; border-radius:12px;" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+      } 
+      // Standard HTML5 Video (MP4 / WebM)
+      else {
+        container.innerHTML = `
+          <video id="html5Player" controls autoplay style="width:100%; max-height:500px; display:block; border-radius:12px; background:#000;">
+            <source src="${sourceUrl}" type="video/mp4">
+            <source src="${sourceUrl}" type="video/webm">
+            Your browser does not support the video tag.
+          </video>
+        `;
+
+        const v = document.getElementById('html5Player');
+
+        v.addEventListener('loadedmetadata', () => {
+          if (v.duration && !isNaN(v.duration)) {
+            const actualLength = Math.round(v.duration);
+            updateDurationMeta(actualLength);
+          }
+        });
+
+        setupMonitoringAgent(v);
+        v.load();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      checkAuthAndRedirect();
+      try {
+        currentAssignment = await apiFetch(`/assignments/${assignmentId}`);
+        document.getElementById('lessonTitle').innerText = currentAssignment.title;
+        updateDurationMeta(currentAssignment.duration_sec || 300);
+        renderVideoPlayer(currentAssignment.source_url);
+      } catch (err) {
+        document.getElementById('lessonTitle').innerText = 'Error Loading Lesson';
+        document.getElementById('playerContainer').innerHTML = `<div style="padding: 2rem; color: #ef4444;">⚠️ ${err.message}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>

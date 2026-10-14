@@ -1,0 +1,16 @@
+{
+  "name": "classbeacon-admin",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "create-user": "node scripts/createUser.js",
+    "set-claim": "node scripts/setClaim.js",
+    "revoke-tokens": "node scripts/revokeTokens.js",
+    "export-student": "node scripts/exportStudent.js",
+    "delete-student": "node scripts/deleteStudent.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

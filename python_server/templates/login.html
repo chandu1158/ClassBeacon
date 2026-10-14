@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClassBeacon — Sign In</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      padding: 2.5rem;
+      color: #0f172a;
+    }
+    .pass-container {
+      position: relative;
+    }
+    .toggle-pass-btn {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .quick-btn {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #f1f5f9;
+      color: #0f172a;
+      cursor: pointer;
+    }
+    .quick-btn:hover {
+      background: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <h1 style="margin: 0; font-size: 1.875rem; font-weight: 800; color: #0f172a;">ClassBeacon 🎓</h1>
+      <p style="margin: 0.5rem 0 0 0; color: #475569; font-size: 0.95rem;">Sign in to access your college portal</p>
+    </div>
+
+    <div id="loginError" style="display: none; padding: 0.875rem; background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px; color: #991b1b; font-size: 0.875rem; margin-bottom: 1.5rem;"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="loginInput" class="form-label">User ID / Roll No / Email</label>
+        <input type="text" id="loginInput" placeholder="e.g. ADMIN001 or STU2026001" required>
+      </div>
+
+      <div class="form-group">
+        <label for="passInput" class="form-label">Password</label>
+        <div class="pass-container">
+          <input type="password" id="passInput" placeholder="Enter password" required style="padding-right: 4.5rem;">
+          <button type="button" id="togglePassBtn" class="toggle-pass-btn">👁️ Show</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem; font-size: 1rem; margin-top: 0.5rem;">Sign In</button>
+    </form>
+
+    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
+      <p style="margin: 0 0 0.75rem 0; font-size: 0.8rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.05em;">Quick Demo Login Credentials:</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        <button type="button" class="quick-btn" onclick="fillDemo('ADMIN001', 'AdminPassword123!')">🔑 Admin (ADMIN001)</button>
+        <button type="button" class="quick-btn" onclick="fillDemo('STAFF001', 'StaffPassword123!')">👨‍🏫 Staff (STAFF001)</button>
+        <button type="button" class="quick-btn" onclick="fillDemo('STU2026001', 'Password123!')">🎓 Student (STU2026001)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/login.js"></script>
+</body>
+</html>

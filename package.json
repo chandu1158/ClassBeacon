@@ -1,0 +1,22 @@
+{
+  "name": "classbeacon-root",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "start": "node start-all.js",
+    "start:server": "npm start --prefix server",
+    "dev": "npm run dev --prefix apps/web",
+    "lint": "npm run lint --prefix apps/web",
+    "typecheck": "npm run typecheck --prefix apps/web",
+    "test": "npm run test --prefix apps/web && npm test --prefix tests",
+    "build": "npm run build --prefix apps/web",
+    "emulators": "firebase emulators:start",
+    "emulators:export": "firebase emulators:export .emulator-data",
+    "deploy": "firebase deploy --project communicationpath-e5990",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes --project communicationpath-e5990",
+    "deploy:hosting": "firebase deploy --only hosting --project communicationpath-e5990"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0"
+  }
+}
